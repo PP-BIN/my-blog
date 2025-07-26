@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import axios from "axios";
+import React, { useEffect, useState, useRef } from "react";
+import { Editor } from "@toast-ui/react-editor";
+import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
+import axios from "axios";
 
 export default function PostWrite() {
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]); // ✅ 이제 배열로 초기화
   const [subcategories, setSubcategories] = useState([]);
   const [form, setForm] = useState({
     title: "",
@@ -16,19 +14,17 @@ export default function PostWrite() {
     subcategory: "",
     thumbnail: "",
   });
+  const editorRef = useRef();
 
-  // ✅ Tiptap Editor 설정
-  const editor = useEditor({
-    extensions: [StarterKit, Image, Link],
-    content: "<p>여기에 글을 작성하세요.</p>",
-  });
-
-  // ✅ 카테고리 가져오기
+  // ✅ 카테고리 & 서브카테고리 불러오기
   useEffect(() => {
     axios
       .get("http://localhost:5000/api/categories")
       .then((res) => {
+        console.log("✅ API로부터 받은 카테고리 데이터:", res.data);
+
         setCategories(res.data);
+
         if (res.data.length > 0) {
           const firstCat = res.data[0];
           setForm((prev) => ({
@@ -42,6 +38,7 @@ export default function PostWrite() {
       .catch((err) => console.error("❌ 카테고리 불러오기 실패", err));
   }, []);
 
+  // ✅ 카테고리 선택 시 서브카테고리 업데이트
   const handleCategoryChange = (e) => {
     const selectedCategory = e.target.value;
     const selectedCat = categories.find((c) => c.category === selectedCategory);
@@ -55,17 +52,22 @@ export default function PostWrite() {
     setSubcategories(selectedCat?.subcategories || []);
   };
 
-  // ✅ 게시글 작성 처리
+  // ✅ 글 작성 처리
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const contentHtml = editor.getHTML();
+    const contentHtml = editorRef.current.getInstance().getHTML();
 
     try {
-      const res = await axios.post("http://localhost:5000/api/posts", {
-        ...form,
-        content: contentHtml,
+      const res = await fetch("http://localhost:5000/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          content: contentHtml,
+        }),
       });
 
+      if (!res.ok) throw new Error("게시글 작성 실패");
       alert("✅ 게시글이 작성되었습니다!");
       window.location.href = "/";
     } catch (err) {
@@ -140,19 +142,17 @@ export default function PostWrite() {
           </select>
         </div>
 
-        {/* ✅ Tiptap Editor */}
-        <EditorContent editor={editor} className={styles.editor} />
-        <button
-          type="button"
-          onClick={() => {
-            const url = prompt("이미지 URL을 입력하세요");
-            if (url) {
-              editor.chain().focus().setImage({ src: url }).run();
-            }
-          }}
-        >
-          🖼 이미지 추가
-        </button>
+        {/* Toast UI Editor */}
+        <Editor
+          ref={editorRef}
+          initialValue=" "
+          previewStyle="vertical"
+          height="400px"
+          initialEditType="wysiwyg"
+          useCommandShortcut={true}
+        />
+
+        {/* 작성 버튼 */}
         <button type="submit" className={styles.submitBtn}>
           작성 완료
         </button>
