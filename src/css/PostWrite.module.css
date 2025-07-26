@@ -60,3 +60,81 @@
 .submitBtn:hover {
   background: #005bb5;
 }
+
+/* ✅ 썸네일 업로드 */
+.thumbnailUpload {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.thumbnailLabel {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.thumbnailInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.thumbnailButton {
+  display: inline-block;
+  padding: 8px 14px;
+  background: #0070f3;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+.thumbnailButton:hover {
+  background: #005bb5;
+}
+
+/* 실제 input은 숨기기 */
+.thumbnailInput {
+  display: none;
+}
+
+/* ✅ 썸네일 미리보기 */
+.thumbnailPreviewWrapper {
+  position: relative;
+  margin-top: 8px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 220px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.thumbnailPreview {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ✅ 삭제 버튼 */
+.thumbnailDeleteBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  line-height: 22px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.thumbnailDeleteBtn:hover {
+  background: rgba(0, 0, 0, 0.8);
+}

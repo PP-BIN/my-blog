@@ -126,7 +126,7 @@ export default function PostWrite() {
           className={styles.input}
         />
 
-        {/* ✅ 썸네일 업로드 */}
+        {/* ✅ 썸네일 업로드
         <input
           type="file"
           accept="image/*"
@@ -139,7 +139,47 @@ export default function PostWrite() {
             alt="썸네일 미리보기"
             style={{ width: "200px", margin: "10px 0", borderRadius: "8px" }}
           />
-        )}
+        )} */}
+
+        {/* ✅ 썸네일 업로드 */}
+        <div className={styles.thumbnailUpload}>
+          <label className={styles.thumbnailLabel}>썸네일 업로드</label>
+
+          {/* 파일 업로드 버튼 */}
+          <div className={styles.thumbnailInputWrapper}>
+            <label htmlFor="thumbnailUpload" className={styles.thumbnailButton}>
+              썸네일 선택하기
+            </label>
+            <input
+              id="thumbnailUpload"
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+              className={styles.thumbnailInput}
+            />
+          </div>
+
+          {/* 썸네일 미리보기 + 삭제 버튼 */}
+          {preview && (
+            <div className={styles.thumbnailPreviewWrapper}>
+              <img
+                src={preview}
+                alt="썸네일 미리보기"
+                className={styles.thumbnailPreview}
+              />
+              <button
+                type="button"
+                className={styles.thumbnailDeleteBtn}
+                onClick={() => {
+                  setPreview("");
+                  setForm((prev) => ({ ...prev, thumbnail: "" }));
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* 카테고리 & 서브카테고리 */}
         <div className={styles.selects}>
