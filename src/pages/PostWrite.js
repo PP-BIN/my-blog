@@ -5,7 +5,7 @@ import styles from "../css/PostWrite.module.css";
 import axios from "axios";
 
 export default function PostWrite() {
-  const [categories, setCategories] = useState([]); // ✅ 이제 배열로 초기화
+  const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [form, setForm] = useState({
     title: "",
@@ -14,6 +14,7 @@ export default function PostWrite() {
     subcategory: "",
     thumbnail: "",
   });
+  const [preview, setPreview] = useState(""); // ✅ 썸네일 미리보기
   const editorRef = useRef();
 
   // ✅ 카테고리 & 서브카테고리 불러오기
@@ -22,7 +23,6 @@ export default function PostWrite() {
       .get("http://localhost:5000/api/categories")
       .then((res) => {
         console.log("✅ API로부터 받은 카테고리 데이터:", res.data);
-
         setCategories(res.data);
 
         if (res.data.length > 0) {
@@ -50,6 +50,30 @@ export default function PostWrite() {
     }));
 
     setSubcategories(selectedCat?.subcategories || []);
+  };
+
+  // ✅ 썸네일 업로드
+  const handleThumbnailChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 미리보기
+    const previewUrl = URL.createObjectURL(file);
+    setPreview(previewUrl);
+
+    // 서버 업로드
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setForm((prev) => ({ ...prev, thumbnail: res.data.url }));
+    } catch (err) {
+      console.error("❌ 썸네일 업로드 실패", err);
+      alert("썸네일 업로드 실패");
+    }
   };
 
   // ✅ 글 작성 처리
@@ -102,16 +126,20 @@ export default function PostWrite() {
           className={styles.input}
         />
 
-        {/* 썸네일 */}
+        {/* ✅ 썸네일 업로드 */}
         <input
-          type="text"
-          placeholder="썸네일 이미지 URL (선택)"
-          value={form.thumbnail}
-          onChange={(e) =>
-            setForm({ ...form, thumbnail: e.target.value })
-          }
+          type="file"
+          accept="image/*"
+          onChange={handleThumbnailChange}
           className={styles.input}
         />
+        {preview && (
+          <img
+            src={preview}
+            alt="썸네일 미리보기"
+            style={{ width: "200px", margin: "10px 0", borderRadius: "8px" }}
+          />
+        )}
 
         {/* 카테고리 & 서브카테고리 */}
         <div className={styles.selects}>
