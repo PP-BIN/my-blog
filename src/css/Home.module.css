@@ -1,0 +1,31 @@
+.container {
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.contentWrapper {
+  width: 100%;
+  max-width: 1400px;
+  display: flex;
+  gap: 1rem;
+  margin: 1rem auto;
+}
+
+.sidebar {
+  width: 220px;
+}
+
+.mainContent {
+  flex: 1;
+}
+
+.recentPostHeader {
+  background-color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.musicPlayerWrapper {
+  width: 200px;
+}

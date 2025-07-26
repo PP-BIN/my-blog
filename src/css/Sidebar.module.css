@@ -1,0 +1,60 @@
+.card {
+  background: #fff;
+  border-radius: 20px;
+  text-align: left;
+  padding: 1rem;
+  margin: 0 auto;
+}
+
+.profileImage {
+  width: 180px;
+  height: 120px;
+  border-radius: 10%;
+  overflow: hidden;
+  margin: 0 auto 1rem;
+}
+
+.profileImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.name {
+  font-size: 1.1rem;
+}
+
+.description {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.divider {
+  margin: 1rem 0;
+}
+
+.categoryTitle {
+  margin-bottom: 0.5rem;
+}
+
+.categoryList {
+  list-style: none;
+  padding-left: 0;
+  text-align: left;
+}
+
+.categoryList li {
+  margin-bottom: 0.5rem;
+}
+
+/* ✅ 클릭 가능한 항목 스타일 */
+.clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  color: black;
+  transition: color 0.2s ease-in-out;
+}
+
+.clickable:hover {
+  color: #007bff; /* hover 시 파란색 */
+}

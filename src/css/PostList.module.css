@@ -1,0 +1,148 @@
+.container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  color: #0070f3;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+  color: #333;
+}
+
+.postGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #f9f9f9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  margin-bottom: 20px;
+  text-decoration: none;  /* ✅ 링크 밑줄 제거 */
+  color: inherit;         /* ✅ 글자 색 기본 유지 */
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.thumbnail {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.content {
+  padding: 12px;
+}
+
+.postTitle {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.postDesc {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.4;
+}
+
+.noPost {
+  text-align: center;
+  color: #999;
+  font-size: 1rem;
+  padding: 40px 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.searchInput {
+  width: 85%;
+  padding: 10px 12px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.searchInput:focus {
+  border: 1px solid #0070f3;
+  box-shadow: 0 0 4px rgba(0, 112, 243, 0.3);
+}
+
+.filterWrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.sortSelect {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 20px;
+  background: #fff;
+}
+
+.sortSelect:focus {
+  border-color: #0070f3;
+}
+
+.searchInput {
+  width: 70%;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.searchInput:focus {
+  border: 1px solid #0070f3;
+  box-shadow: 0 0 4px rgba(0, 112, 243, 0.3);
+}
+
+.postDate {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 6px;
+}
+
