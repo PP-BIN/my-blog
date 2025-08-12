@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Editor } from "@toast-ui/react-editor";
 import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
-import axios from "axios";
+import api from "../api";
 import { useNavigate, useParams } from "react-router-dom";
 import logger from "../utils/logger";
 
@@ -33,8 +33,8 @@ export default function PostWrite() {
 
   // ✅ 카테고리 & 서브카테고리 불러오기
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/categories")
+    api
+      .get("/categories")
       .then((res) => {
         logger.debug("✅ API로부터 받은 카테고리 데이터:", res.data);
         setCategories(res.data);
@@ -83,7 +83,7 @@ export default function PostWrite() {
     formData.append("image", file);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/upload", formData, {
+      const res = await api.post("/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setForm((prev) => ({ ...prev, thumbnail: res.data.url }));
@@ -107,33 +107,17 @@ export default function PostWrite() {
   try {
     if (postId) {
       // 수정 API 호출 (토큰 포함)
-      await axios.put(
-        `http://localhost:5000/api/posts/${postId}`,
-        {
-          ...form,
-          content: contentHtml,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await api.put(`/posts/${postId}`, {
+        ...form,
+        content: contentHtml,
+      });
       alert("게시글이 수정되었습니다!");
     } else {
       // 새글 작성 API 호출 (토큰 포함)
-      await axios.post(
-        "http://localhost:5000/api/posts",
-        {
-          ...form,
-          content: contentHtml,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await api.post("/posts", {
+        ...form,
+        content: contentHtml,
+      });
       alert("게시글이 작성되었습니다!");
     }
     navigate("/", { replace: true });
@@ -147,7 +131,7 @@ export default function PostWrite() {
   useEffect(() => {
   if (!postId) return;
 
-  axios.get(`http://localhost:5000/api/posts/category/subcategory/${postId}`)
+  api.get(`/posts/category/subcategory/${postId}`)
     .then(res => {
       const data = res.data;
       setForm({
