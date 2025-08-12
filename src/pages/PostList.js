@@ -1,6 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+
+
 import api from "../api";
+
+import { useEffect, useState, useMemo } from "react";
+
+
 import styles from "../css/PostList.module.css";
 
 export default function PostList() {
@@ -17,16 +22,18 @@ export default function PostList() {
       .catch((err) => console.error(err));
   }, [category, subcategory]);
 
-  const filteredPosts = posts
-    .filter((post) => post.title.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => {
-      if (sort === "latest") {
-        return new Date(b.created_at) - new Date(a.created_at);
-      } else if (sort === "oldest") {
-        return new Date(a.created_at) - new Date(b.created_at);
-      }
-      return 0;
-    });
+  const filteredPosts = useMemo(() => {
+    return posts
+      .filter((post) => post.title.toLowerCase().includes(search.toLowerCase()))
+      .sort((a, b) => {
+        if (sort === "latest") {
+          return new Date(b.created_at) - new Date(a.created_at);
+        } else if (sort === "oldest") {
+          return new Date(a.created_at) - new Date(b.created_at);
+        }
+        return 0;
+      });
+  }, [posts, search, sort]);
 
   return (
     <div className={styles.container}>

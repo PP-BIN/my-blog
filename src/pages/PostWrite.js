@@ -4,6 +4,7 @@ import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
 import api from "../api";
 import { useNavigate, useParams } from "react-router-dom";
+import logger from "../utils/logger";
 
 export default function PostWrite() {
   const { postId } = useParams();
@@ -21,12 +22,21 @@ export default function PostWrite() {
   const [preview, setPreview] = useState("");
   const editorRef = useRef();
 
+  // ✅ 객체 URL 정리: preview 변경 및 컴포넌트 언마운트 시 해제
+  useEffect(() => {
+    return () => {
+      if (preview && preview.startsWith("blob:")) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
   // ✅ 카테고리 & 서브카테고리 불러오기
   useEffect(() => {
     api
       .get("/categories")
       .then((res) => {
-        console.log("✅ API로부터 받은 카테고리 데이터:", res.data);
+        logger.debug("✅ API로부터 받은 카테고리 데이터:", res.data);
         setCategories(res.data);
 
         if (res.data.length > 0) {
@@ -61,7 +71,10 @@ export default function PostWrite() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 미리보기
+    // 기존 미리보기 URL 정리 후 새 URL 생성
+    if (preview && preview.startsWith("blob:")) {
+      URL.revokeObjectURL(preview);
+    }
     const previewUrl = URL.createObjectURL(file);
     setPreview(previewUrl);
 
@@ -107,7 +120,7 @@ export default function PostWrite() {
       });
       alert("게시글이 작성되었습니다!");
     }
-    window.location.href = "/";
+    navigate("/", { replace: true });
   } catch (err) {
     console.error(err.response?.data || err.message);
     alert("저장 실패");
