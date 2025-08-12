@@ -1,70 +1,43 @@
-# Getting Started with Create React App
+## My Blog
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React 기반의 개인 블로그 프로젝트입니다. 카테고리별 게시물 관리와 WYSIWYG 글쓰기 등 학습과 실험을 위해 만들어졌습니다.
 
-## Available Scripts
+## 주요 기능
 
-In the project directory, you can run:
+- 카테고리/서브카테고리별 게시물 목록과 상세 보기
+- 글 작성 및 썸네일 업로드 지원
+- 댓글 작성과 좋아요 기능
+- 배경 음악 재생 플레이어
 
-### `npm start`
+## 실행 및 빌드
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+프로젝트 루트에서 다음 명령을 사용할 수 있습니다.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+| 명령 | 설명 |
+| ---- | ---- |
+| `npm start` | 개발 서버를 `http://localhost:3000`에서 실행합니다. |
+| `npm run build` | 프로덕션용 정적 파일을 `build/`에 생성합니다. |
+| `npm test` | Jest 기반 테스트를 실행합니다. |
 
-### `npm test`
+## API 서버 의존성
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+이 프런트엔드는 `http://localhost:5000`에서 동작하는 API 서버에 의존합니다. 예시 엔드포인트:
 
-### `npm run build`
+- `GET /api/posts` – 게시물 목록 조회
+- `POST /api/posts` – 게시물 생성
+- `POST /api/comments` – 댓글 등록
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+API 서버가 실행 중이어야 전체 기능을 사용할 수 있습니다.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## 폴더 구조
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```
+my-blog/
+├── public/            # 정적 파일
+└── src/
+    ├── components/    # 재사용 가능한 컴포넌트
+    ├── pages/         # 페이지 단위 컴포넌트
+    └── css/           # CSS 모듈
+```
 
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+코드 스타일은 함수형 컴포넌트를 사용하며 CSS Module을 기본으로 합니다.
