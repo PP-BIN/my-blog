@@ -4,6 +4,7 @@ import axios from "axios";
 import styles from "../css/PostDetail.module.css";
 import "@toast-ui/editor/dist/toastui-editor-viewer.css";
 import { useAuth } from "../AuthContext";
+import logger from "../utils/logger";
 
 export default function PostDetail() {
   const { category, subcategory, postId } = useParams();
@@ -30,8 +31,8 @@ export default function PostDetail() {
   }, [category, subcategory, postId]);
 
   useEffect(() => {
-  console.log("현재 사용자:", user);
-}, [user]);
+    logger.debug("현재 사용자:", user);
+  }, [user]);
 
   // 로딩 상태 처리
   if (!post.id) return <p>로딩 중...</p>;

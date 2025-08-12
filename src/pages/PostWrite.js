@@ -4,6 +4,7 @@ import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import logger from "../utils/logger";
 
 export default function PostWrite() {
   const { postId } = useParams();
@@ -26,7 +27,7 @@ export default function PostWrite() {
     axios
       .get("http://localhost:5000/api/categories")
       .then((res) => {
-        console.log("✅ API로부터 받은 카테고리 데이터:", res.data);
+        logger.debug("✅ API로부터 받은 카테고리 데이터:", res.data);
         setCategories(res.data);
 
         if (res.data.length > 0) {
