@@ -3,8 +3,12 @@ import { Editor } from "@toast-ui/react-editor";
 import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
 import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function PostWrite() {
+  const { postId } = useParams();
+  const navigate = useNavigate();
+
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
   const [form, setForm] = useState({
@@ -14,7 +18,7 @@ export default function PostWrite() {
     subcategory: "",
     thumbnail: "",
   });
-  const [preview, setPreview] = useState(""); // ✅ 썸네일 미리보기
+  const [preview, setPreview] = useState("");
   const editorRef = useRef();
 
   // ✅ 카테고리 & 서브카테고리 불러오기
@@ -77,32 +81,90 @@ export default function PostWrite() {
   };
 
   // ✅ 글 작성 처리
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const contentHtml = editorRef.current.getInstance().getHTML();
+   const handleSubmit = async (e) => {
+  e.preventDefault();
+  const contentHtml = editorRef.current.getInstance().getHTML();
+  const token = localStorage.getItem("token");
 
-    try {
-      const res = await fetch("http://localhost:5000/api/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+  if (!token) {
+    alert("로그인이 필요합니다.");
+    return;
+  }
+
+  try {
+    if (postId) {
+      // 수정 API 호출 (토큰 포함)
+      await axios.put(
+        `http://localhost:5000/api/posts/${postId}`,
+        {
           ...form,
           content: contentHtml,
-        }),
-      });
-
-      if (!res.ok) throw new Error("게시글 작성 실패");
-      alert("✅ 게시글이 작성되었습니다!");
-      window.location.href = "/";
-    } catch (err) {
-      console.error(err);
-      alert("❌ 작성 실패");
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("게시글이 수정되었습니다!");
+    } else {
+      // 새글 작성 API 호출 (토큰 포함)
+      await axios.post(
+        "http://localhost:5000/api/posts",
+        {
+          ...form,
+          content: contentHtml,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("게시글이 작성되었습니다!");
     }
-  };
+    window.location.href = "/";
+  } catch (err) {
+    console.error(err.response?.data || err.message);
+    alert("저장 실패");
+  }
+};
+
+  // 글 수정모드
+  useEffect(() => {
+  if (!postId) return;
+
+  axios.get(`http://localhost:5000/api/posts/category/subcategory/${postId}`)
+    .then(res => {
+      const data = res.data;
+      setForm({
+        title: data.title,
+        description: data.description || "",
+        category: data.category,
+        subcategory: data.subcategory,
+        thumbnail: data.thumbnail,
+      });
+      setPreview(data.thumbnail);
+
+      // categories가 없으면 그냥 리턴 (아래서 세팅 불가)
+      if (!categories.length) return;
+
+      const cat = categories.find(c => c.category === data.category);
+      setSubcategories(cat ? cat.subcategories : []);
+
+      if (editorRef.current) {
+        editorRef.current.getInstance().setHTML(data.content);
+      }
+    })
+    .catch(err => console.error(err));
+}, [postId, categories]);
+
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>✏️ 새 글 작성</h2>
+      <h2 className={styles.title}>
+        {postId ? "✏️ 글 수정" : "✏️ 새 글 작성"}
+      </h2>
 
       <form onSubmit={handleSubmit} className={styles.form}>
         {/* 제목 */}
@@ -125,21 +187,6 @@ export default function PostWrite() {
           }
           className={styles.input}
         />
-
-        {/* ✅ 썸네일 업로드
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleThumbnailChange}
-          className={styles.input}
-        />
-        {preview && (
-          <img
-            src={preview}
-            alt="썸네일 미리보기"
-            style={{ width: "200px", margin: "10px 0", borderRadius: "8px" }}
-          />
-        )} */}
 
         {/* ✅ 썸네일 업로드 */}
         <div className={styles.thumbnailUpload}>
@@ -219,11 +266,15 @@ export default function PostWrite() {
           initialEditType="wysiwyg"
           useCommandShortcut={true}
         />
-
-        {/* 작성 버튼 */}
-        <button type="submit" className={styles.submitBtn}>
-          작성 완료
-        </button>
+        <div className="Btns">
+          {/* 작성 버튼 */}
+          <button type="submit" className={styles.submitBtn}>
+            작성 완료
+          </button>
+          <button className={styles.cencelBtn} onClick={() => navigate("/")}>
+            취소
+          </button>
+        </div>
       </form>
     </div>
   );

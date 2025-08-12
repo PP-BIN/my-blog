@@ -1,5 +1,6 @@
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
+import Footer from "../components/Footer";
 import MusicPlayer from "../components/MusicPlayer";
 import { Outlet } from "react-router-dom";
 import styles from "../css/Home.module.css";
@@ -19,6 +20,7 @@ export default function HomeLayout() {
           <MusicPlayer />
         </div>
       </div>
+      <Footer/>
     </div>
   );
 }
