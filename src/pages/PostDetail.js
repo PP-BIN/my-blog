@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import api from "../api";
+import axios from "axios";
 import styles from "../css/PostDetail.module.css";
 import "@toast-ui/editor/dist/toastui-editor-viewer.css";
 import { useAuth } from "../AuthContext";
@@ -11,12 +11,12 @@ export default function PostDetail() {
   const [post, setPost] = useState({ comments: [] });
   const [commentText, setCommentText] = useState("");
   const navigate = useNavigate();
-  const { user } = useAuth(); // token은 인터셉터에서 처리
+  const { user, token } = useAuth(); // token도 가져오기
 
   // 게시글 + 댓글 불러오기
   const fetchPost = () => {
-    api
-      .get(`/posts/${category}/${subcategory}/${postId}`)
+    axios
+      .get(`http://localhost:5000/api/posts/${category}/${subcategory}/${postId}`)
       .then((res) =>
         setPost({
           ...res.data,
@@ -43,10 +43,16 @@ export default function PostDetail() {
     if (!commentText.trim()) return alert("댓글 내용을 입력하세요.");
 
     try {
-      await api.post("/comments", {
-        post_id: postId,
-        content: commentText,
-      });
+      await axios.post(
+        "http://localhost:5000/api/comments",
+        {
+          post_id: postId,
+          content: commentText,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setCommentText("");
       fetchPost();
     } catch (err) {
@@ -58,7 +64,9 @@ export default function PostDetail() {
   const handleDeleteComment = async (commentId) => {
     if (!window.confirm("댓글을 삭제하시겠습니까?")) return;
     try {
-      await api.delete(`/comments/${commentId}`);
+      await axios.delete(`http://localhost:5000/api/comments/${commentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       fetchPost();
     } catch (err) {
       alert(err.response?.data?.message || "댓글 삭제 실패");
@@ -68,7 +76,7 @@ export default function PostDetail() {
   // 좋아요
   const handleLike = async () => {
     try {
-      await api.post(`/posts/${postId}/like`);
+      await axios.post(`http://localhost:5000/api/posts/${postId}/like`);
       setPost((prev) => ({
         ...prev,
         likes_count: (prev.likes_count || 0) + 1,
@@ -83,7 +91,9 @@ export default function PostDetail() {
     if (!window.confirm("정말 삭제하시겠습니까?")) return;
 
     try {
-      await api.delete(`/posts/${postId}`);
+      await axios.delete(`http://localhost:5000/api/posts/${postId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       alert("게시물이 삭제되었습니다.");
       navigate(-1);
     } catch (err) {

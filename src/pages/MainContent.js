@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import api from "../api";
+import axios from "axios";
 import FeaturedPost from "../components/FeaturedPost";
 import { Link } from "react-router-dom";
 import { useAuth } from "../AuthContext";
@@ -9,8 +9,8 @@ export default function MainContent() {
   const [featuredData, setFeaturedData] = useState({});
 
   useEffect(() => {
-    api
-      .get("/posts/featured")
+    axios
+      .get("http://localhost:5000/api/posts/featured")
       .then((res) => setFeaturedData(res.data))
       .catch((err) => console.error(err));
   }, []);
