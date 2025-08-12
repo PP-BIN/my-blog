@@ -123,7 +123,7 @@ export default function PostWrite() {
       );
       alert("게시글이 작성되었습니다!");
     }
-    window.location.href = "/";
+    navigate("/", { replace: true });
   } catch (err) {
     console.error(err.response?.data || err.message);
     alert("저장 실패");
