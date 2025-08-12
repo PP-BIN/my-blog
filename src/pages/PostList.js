@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import styles from "../css/PostList.module.css";
 
 export default function PostList() {
@@ -11,8 +11,8 @@ export default function PostList() {
   const [sort, setSort] = useState("latest");
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:5000/api/posts?category=${category}&subcategory=${subcategory}`)
+    api
+      .get(`/posts?category=${category}&subcategory=${subcategory}`)
       .then((res) => setPosts(res.data))
       .catch((err) => console.error(err));
   }, [category, subcategory]);
