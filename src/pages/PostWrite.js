@@ -22,6 +22,15 @@ export default function PostWrite() {
   const [preview, setPreview] = useState("");
   const editorRef = useRef();
 
+  // ✅ 객체 URL 정리: preview 변경 및 컴포넌트 언마운트 시 해제
+  useEffect(() => {
+    return () => {
+      if (preview && preview.startsWith("blob:")) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
   // ✅ 카테고리 & 서브카테고리 불러오기
   useEffect(() => {
     axios
@@ -62,7 +71,10 @@ export default function PostWrite() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 미리보기
+    // 기존 미리보기 URL 정리 후 새 URL 생성
+    if (preview && preview.startsWith("blob:")) {
+      URL.revokeObjectURL(preview);
+    }
     const previewUrl = URL.createObjectURL(file);
     setPreview(previewUrl);
 
