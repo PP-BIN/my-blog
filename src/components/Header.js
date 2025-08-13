@@ -30,6 +30,51 @@ function Header() {
         zIndex: 100,
       }}
     >
+      {/* 로고이미지 */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0,             // <- 간격 제거
+          lineHeight: 0,      // <- 혹시 모를 문자 간격 제거(보강)
+          // 필요시 크기 제한: height: 50
+        }}
+      >
+        <img
+          src="/images/Logo_blue.png"
+          alt="파스텔 하늘색 발바닥"
+          style={{
+            display: "block",  // <- baseline 제거
+            margin: 0,
+            width: 50,
+            height: 50,
+            objectFit: "contain"
+          }}
+        />
+        <img
+          src="/images/Logo_white.png"
+          alt="중간 흰색 발바닥"
+          style={{
+            display: "block",
+            margin: 0,
+            width: 50,
+            height: 50,
+            objectFit: "contain"
+          }}
+        />
+        <img
+          src="/images/Logo_gray.png"
+          alt="중간 회색 발바닥"
+          style={{
+            display: "block",
+            margin: 0,
+            width: 50,
+            height: 50,
+            objectFit: "contain"
+          }}
+        />
+      </div>
+
       {/* 로고 */}
       <div
         style={{
@@ -54,7 +99,7 @@ function Header() {
             onClick={handleLogout}
             style={{
               padding: "6px 14px",
-              background: "rgba(255, 99, 99, 0.4)",
+              background: "rgba(99, 190, 255, 0.4)",
               border: "1px solid rgba(255,255,255,0.5)",
               borderRadius: "8px",
               cursor: "pointer",
@@ -64,10 +109,10 @@ function Header() {
               backdropFilter: "blur(5px)",
             }}
             onMouseOver={(e) => {
-              e.target.style.background = "rgba(255, 99, 99, 0.6)";
+              e.target.style.background = "rgba(99, 182, 255, 0.6)";
             }}
             onMouseOut={(e) => {
-              e.target.style.background = "rgba(255, 99, 99, 0.4)";
+              e.target.style.background = "rgba(99, 193, 255, 0.4)";
             }}
           >
             로그아웃

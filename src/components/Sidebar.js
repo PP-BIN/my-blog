@@ -1,12 +1,24 @@
 import { useNavigate } from "react-router-dom";
 import styles from "../css/Sidebar.module.css";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import slugify from "../utils/slugify";
 
 function Sidebar() {
   const navigate = useNavigate();
+  const [categories, setCategories] = useState([]); 
 
-  const handleClick = (path) => {
-    navigate(path);
-  };
+  useEffect(() => {
+    axios.get("http://localhost:5000/api/categories")
+      .then(res => setCategories(res.data))
+      .catch(err => console.error("❌ 사이드바 카테고리 로드 실패", err));
+  }, []);
+
+const handleClick = (category, sub) => {
+  const catParam = encodeURIComponent(String(category || "").toLowerCase());
+  const subParam = encodeURIComponent(String(sub || ""));
+  navigate(`/${catParam}/${subParam}`);
+};
 
   return (
     <aside className={styles.card}>
@@ -28,48 +40,22 @@ function Sidebar() {
       </p>
 
       <ul className={styles.categoryList}>
-        <li>
-          <strong>Study</strong>
-          <ul>
-            {["react.js", "next.js", "jsp mvc"].map((item) => (
-              <li
-                key={item}
-                className={styles.clickable}
-                onClick={() => handleClick(`/study/${item}`)}
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-        </li>
-        <li>
-          <strong>Travel</strong>
-          <ul>
-            {["busan", "jeju", "japan"].map((item) => (
-              <li
-                key={item}
-                className={styles.clickable}
-                onClick={() => handleClick(`/travel/${item}`)}
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-        </li>
-        <li>
-          <strong>Album</strong>
-          <ul>
-            {["일상", "음식"].map((item) => (
-              <li
-                key={item}
-                className={styles.clickable}
-                onClick={() => handleClick(`/album/${item}`)}
-              >
-                {item}
-              </li>
-            ))}
-          </ul>
-        </li>
+        {categories.map(({ category, subcategories }) => (
+          <li key={category}>
+            <strong>{category}</strong>
+            <ul>
+              {subcategories.map((sub) => (
+                <li
+                  key={`${category}-${sub}`}
+                  className={styles.clickable}
+                  onClick={() => handleClick(category, sub)}
+                >
+                  {sub}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
       </ul>
     </aside>
   );

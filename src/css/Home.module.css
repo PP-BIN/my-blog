@@ -1,5 +1,7 @@
 .container {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .contentWrapper {
@@ -7,6 +9,7 @@
   display: flex;
   gap: 1rem;
   margin: 1rem auto;
+  flex: 1;
 }
 
 .sidebar {
@@ -14,7 +17,9 @@
 }
 
 .mainContent {
+  width: 1400px;
   flex: 1;
+  margin-bottom: 50px;
 }
 
 .recentPostHeader {
