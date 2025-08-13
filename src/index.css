@@ -3,3 +3,34 @@ body {
   font-family: 'Segoe UI', sans-serif;
   background-color: #e0eaf3;
 }
+
+/* src/index.css */
+#star-layer {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  overflow: visible;
+  z-index: 9999;
+}
+
+.star {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: radial-gradient(circle, #ffffff 0%, #ffffff 60%, transparent 61%);
+  filter: drop-shadow(0 0 6px #87aff5);
+  opacity: 0.9;
+  will-change: transform, opacity;
+  animation: star-pop 600ms ease-out forwards;
+}
+
+@keyframes star-pop {
+  0%   { transform: translate(var(--x), var(--y)) scale(1) rotate(45deg); opacity: 1; }
+  100% { transform: translate(calc(var(--x) + var(--dx)), calc(var(--y) + var(--dy))) scale(0.6) rotate(45deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star { animation: none; display: none; }
+}
+
