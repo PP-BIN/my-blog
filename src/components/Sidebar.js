@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "../css/Sidebar.module.css";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import slugify from "../utils/slugify";
+import { normalize } from "../utils/slugify";
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -14,11 +14,11 @@ function Sidebar() {
       .catch(err => console.error("❌ 사이드바 카테고리 로드 실패", err));
   }, []);
 
-const handleClick = (category, sub) => {
-  const catParam = encodeURIComponent(String(category || "").toLowerCase());
-  const subParam = encodeURIComponent(String(sub || ""));
-  navigate(`/${catParam}/${subParam}`);
-};
+  const handleClick = (category, sub) => {
+    const catParam = encodeURIComponent(normalize(category));
+    const subParam = encodeURIComponent(normalize(sub));
+    navigate(`/${catParam}/${subParam}`);
+  };
 
   return (
     <aside className={styles.card}>

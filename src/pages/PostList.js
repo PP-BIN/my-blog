@@ -2,16 +2,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import axios from "axios";
 import styles from "../css/PostList.module.css";
-
-// URL/원본명 관대한 정규화 (프론트 매핑용)
-const normalize = (s = "") =>
-  String(s)
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s.\-가-힣]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .toLowerCase();
+import { normalize } from "../utils/slugify";
 
 export default function PostList() {
   const { category, subcategory } = useParams();
