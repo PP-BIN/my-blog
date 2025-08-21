@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo, useCallback } from "react";
-import axios from "axios";
+import api from "../utils/api";
 import styles from "../css/PostList.module.css";
 import { normalize } from "../utils/slugify";
 
@@ -18,7 +18,7 @@ export default function PostList() {
 
   const resolveCanonicalNames = useCallback(async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/categories");
+      const res = await api.get("/categories");
       const list = res.data || [];
 
       const urlCatNorm = normalize(urlCat);
@@ -52,13 +52,13 @@ export default function PostList() {
 
       // 1) 유연 매칭 API 우선
       try {
-        const byCat = await axios.get(
-          `http://localhost:5000/api/posts/by-category/${encodeURIComponent(category)}/${encodeURIComponent(subcategory)}`
+        const byCat = await api.get(
+          `/posts/by-category/${encodeURIComponent(category)}/${encodeURIComponent(subcategory)}`
         );
         setPosts(byCat.data || []);
       } catch (e1) {
         // 2) 폴백: 기존 쿼리 (params 사용 → 자동 인코딩)
-        const legacy = await axios.get(`http://localhost:5000/api/posts`, {
+        const legacy = await api.get(`/posts`, {
           params: {
             category: canonicalCategory,
             subcategory: canonicalSubcategory,

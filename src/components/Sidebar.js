@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import styles from "../css/Sidebar.module.css";
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../utils/api";
 import { normalize } from "../utils/slugify";
 
 function Sidebar() {
@@ -9,7 +9,8 @@ function Sidebar() {
   const [categories, setCategories] = useState([]); 
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/categories")
+    api
+      .get("/categories")
       .then(res => setCategories(res.data))
       .catch(err => console.error("❌ 사이드바 카테고리 로드 실패", err));
   }, []);
