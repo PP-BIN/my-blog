@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Editor } from "@toast-ui/react-editor";
 import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
-import axios from "axios";
+import api from "../utils/api";
 import { useNavigate, useParams } from "react-router-dom";
 import logger from "../utils/logger";
 
@@ -38,7 +38,7 @@ export default function PostWrite() {
   // 카테고리 불러오기
   const fetchCategories = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/categories");
+      const res = await api.get("/categories");
       logger.debug("✅ API 카테고리:", res.data);
       setCategories(res.data);
 
@@ -105,7 +105,7 @@ export default function PostWrite() {
     fd.append("image", file);
 
     try {
-      const res = await axios.post("http://localhost:5000/api/upload", fd, {
+      const res = await api.post("/upload", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setForm((prev) => ({ ...prev, thumbnail: res.data.url }));
@@ -127,18 +127,10 @@ export default function PostWrite() {
 
     try {
       if (postId) {
-        await axios.put(
-          `http://localhost:5000/api/posts/${postId}`,
-          { ...form, content: contentHtml },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await api.put(`/posts/${postId}`, { ...form, content: contentHtml });
         alert("게시글이 수정되었습니다!");
       } else {
-        await axios.post(
-          "http://localhost:5000/api/posts",
-          { ...form, content: contentHtml },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        await api.post("/posts", { ...form, content: contentHtml });
         alert("게시글이 작성되었습니다!");
       }
       navigate("/", { replace: true });
@@ -151,8 +143,8 @@ export default function PostWrite() {
   // 수정 모드
   useEffect(() => {
     if (!postId) return;
-    axios
-      .get(`http://localhost:5000/api/posts/category/subcategory/${postId}`)
+    api
+      .get(`/posts/category/subcategory/${postId}`)
       .then((res) => {
         const d = res.data;
         setForm({
@@ -180,7 +172,7 @@ export default function PostWrite() {
   // 카테고리 추가만
   const handleAddCategoryOnly = async (name) => {
     try {
-      await axios.post("http://localhost:5000/api/categories", { name });
+      await api.post("/categories", { name });
       await fetchCategories();
       setForm((p) => ({ ...p, category: name, subcategory: "" }));
       setSubcategories([]);
@@ -198,14 +190,12 @@ export default function PostWrite() {
   const handleAddSubcategorySmart = async (categoryName, subName) => {
     try {
       // 백엔드가 없으면 카테고리 생성 후 서브카테고리 추가를 지원함(UPSERT)
-      await axios.post(
-        `http://localhost:5000/api/categories/${encodeURIComponent(
-          categoryName
-        )}/subcategories`,
+      await api.post(
+        `/categories/${encodeURIComponent(categoryName)}/subcategories`,
         { name: subName }
       );
       // 로컬 상태 갱신
-      const updated = await axios.get("http://localhost:5000/api/categories");
+      const updated = await api.get("/categories");
       setCategories(updated.data);
 
       // 현재 선택을 방금 작업한 항목으로 맞춤
@@ -263,13 +253,13 @@ export default function PostWrite() {
     if (!window.confirm(`'${form.category}' 카테고리를 삭제할까요? (하위도 함께 삭제)`)) return;
 
     try {
-      await axios.delete(
-        `http://localhost:5000/api/categories/${encodeURIComponent(form.category)}`
+      await api.delete(
+        `/categories/${encodeURIComponent(form.category)}`
       );
       await fetchCategories();
 
       // 새 선택값 결정
-      const res = await axios.get("http://localhost:5000/api/categories");
+      const res = await api.get("/categories");
       const list = res.data;
       setCategories(list);
       if (list.length) {
@@ -296,10 +286,8 @@ export default function PostWrite() {
     if (!window.confirm(`'${form.category} > ${form.subcategory}' 를 삭제할까요?`)) return;
 
     try {
-      await axios.delete(
-        `http://localhost:5000/api/categories/${encodeURIComponent(
-          form.category
-        )}/subcategories/${encodeURIComponent(form.subcategory)}`
+      await api.delete(
+        `/categories/${encodeURIComponent(form.category)}/subcategories/${encodeURIComponent(form.subcategory)}`
       );
 
       // 로컬 상태 갱신
