@@ -5,10 +5,13 @@
 }
 
 .contentWrapper {
+  width: 100%;
   max-width: 1400px;
   display: flex;
   gap: 1rem;
   margin: 1rem auto;
+  padding: 0 16px;
+  box-sizing: border-box;
   flex: 1;
 }
 
@@ -17,8 +20,8 @@
 }
 
 .mainContent {
-  width: 1400px;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   margin-bottom: 50px;
 }
 
