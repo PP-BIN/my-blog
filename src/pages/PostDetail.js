@@ -124,14 +124,6 @@ export default function PostDetail() {
 
       <p className={styles.date}>{new Date(post.created_at).toLocaleDateString()}</p>
 
-      {post.thumbnail && (
-        <img
-          src={post.thumbnail}
-          alt={post.title}
-          className={styles.thumbnail}
-        />
-      )}
-
       <div
         className={`${styles.content} toastui-editor-contents`}
         dangerouslySetInnerHTML={{ __html: post.content }}

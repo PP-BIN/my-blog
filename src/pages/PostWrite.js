@@ -1,3 +1,4 @@
+// 파일: src/pages/PostWrite.js
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api from "../utils/api";
@@ -6,10 +7,10 @@ import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
 import { useAuth } from "../AuthContext";
 
-// URL/경로에서 postId 추출 (여러 라우팅 패턴 대응)
+// postId 추출 유틸
 function useEditId() {
-  const params = useParams();            // /write/:postId 형태
-  const location = useLocation();        // /write?postId=123 또는 /write/postId=123
+  const params = useParams();
+  const location = useLocation();
   const q = new URLSearchParams(location.search);
   const byQuery = q.get("postId");
   const m = location.pathname.match(/postId=(\d+)/i);
@@ -22,28 +23,21 @@ export default function PostWrite() {
   const { user } = useAuth();
   const editorRef = useRef(null);
 
-  // 폼 상태
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
   const [thumbUrl, setThumbUrl] = useState("");
-
-  // 에디터 초기값/로딩 제어
   const [initialContent, setInitialContent] = useState("");
   const [editorReady, setEditorReady] = useState(false);
 
-  // 썸네일 파일(선택 즉시 업로드)
-  const [thumbFile, setThumbFile] = useState(null);
-
-  // 수정 모드 판정
   const editId = useEditId();
   const isEdit = useMemo(() => !!editId, [editId]);
 
-  // 수정 모드면 기존 글 불러오기
+  // 수정 모드: 기존 데이터 로딩
   useEffect(() => {
     let ignore = false;
-    async function load() {
+    (async () => {
       if (!isEdit) {
         setInitialContent("");
         setEditorReady(true);
@@ -64,47 +58,56 @@ export default function PostWrite() {
         alert("글 정보를 불러오지 못했습니다.");
         navigate(-1);
       }
-    }
-    load();
+    })();
     return () => { ignore = true; };
   }, [isEdit, editId, navigate]);
 
-  // 공용 업로드 함수 (썸네일/본문 이미지 모두 사용)
+  // 공용 업로드 함수 (FormData, 재시도/에러 메시지 강화)
   const uploadFile = async (file) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const { data } = await api.post("/uploads", fd);
-    return data.url;
-  };
-
-  // 썸네일 선택 시 자동 업로드 (본문에는 삽입하지 않음)
-  const onThumbChange = async (e) => {
-    const f = e.target.files?.[0];
-    setThumbFile(f || null);
-    if (!f) return;
     try {
-      const url = await uploadFile(f);
-      setThumbUrl(url); // 미리보기/저장용으로만 사용 (본문엔 삽입 X)
+      const fd = new FormData();
+      fd.append("file", file);
+      const { data } = await api.post("/uploads", fd, {
+        // 명시해도 OK, 생략해도 axios가 자동 설정
+        headers: { /* 'Content-Type': 'multipart/form-data' */ },
+      });
+      if (!data?.url) throw new Error("서버가 URL을 반환하지 않았습니다.");
+      return data.url;
     } catch (err) {
-      console.error(err);
-      alert("썸네일 업로드 실패");
+      const msg = err?.response?.data?.message || err.message || "업로드 실패";
+      // 인증 만료 등도 친절히 표시
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        throw new Error("업로드 권한이 없습니다. 다시 로그인해 주세요.");
+      }
+      throw new Error(msg);
     }
   };
 
-  // 에디터 이미지 업로드 훅 (본문 삽입 전용)
+  // 썸네일: 선택 즉시 업로드 → 본문 삽입하지 않음
+  const onThumbChange = async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const url = await uploadFile(f);
+      setThumbUrl(url);
+    } catch (e2) {
+      alert(e2.message);
+    }
+  };
+
+  // 에디터 훅: 본문 이미지 업로드 전용 (여러 번 연속 업로드 안정화)
   const editorHooks = {
     addImageBlobHook: async (blob, callback) => {
       try {
+        // 같은 파일명을 반복 업로드해도 문제 없도록 파일명 임의 부여는 서버에서 처리됨
         const url = await uploadFile(blob);
-        callback(url, "image"); // 본문에만 삽입
+        callback(url, "image");
       } catch (e) {
-        console.error(e);
-        alert("이미지 업로드 실패");
+        alert(e.message || "이미지 업로드 실패");
       }
     },
   };
 
-  // 저장(작성/수정)
   const handleSubmit = async () => {
     const editor = editorRef.current?.getInstance();
     const html = editor ? editor.getHTML() : "";
@@ -115,10 +118,10 @@ export default function PostWrite() {
     const payload = {
       title: title.trim(),
       description: description.trim(),
-      content: html,                  // 본문 HTML
+      content: html,
       category: (category || "").trim(),
       subcategory: (subcategory || "").trim(),
-      thumbnail: thumbUrl || "",      // 썸네일은 본문과 독립
+      thumbnail: thumbUrl || "",
     };
 
     try {
@@ -214,7 +217,6 @@ export default function PostWrite() {
       </div>
 
       <div className={styles.editorWrap}>
-        {/* 데이터 로드 전에는 에디터를 렌더하지 않아 깜빡임/깨짐 방지 */}
         {editorReady ? (
           <Editor
             ref={editorRef}
