@@ -6,23 +6,20 @@ import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
 import { useAuth } from "../AuthContext";
 
-// ● 유틸: 경로에서 postId 추출 (여러 라우팅 형태 대응)
+// URL/경로에서 postId 추출 (여러 라우팅 패턴 대응)
 function useEditId() {
   const params = useParams();            // /write/:postId 형태
-  const location = useLocation();        // /write?postId=123 또는 /write/postId=123 형태
+  const location = useLocation();        // /write?postId=123 또는 /write/postId=123
   const q = new URLSearchParams(location.search);
   const byQuery = q.get("postId");
-
-  let byPathEq = null;
   const m = location.pathname.match(/postId=(\d+)/i);
-  if (m) byPathEq = m[1];
-
+  const byPathEq = m ? m[1] : null;
   return params.postId || byQuery || byPathEq || null;
 }
 
 export default function PostWrite() {
   const navigate = useNavigate();
-  const { user } = useAuth(); // 필요시 권한 체크 (ex. master만 작성)
+  const { user } = useAuth();
   const editorRef = useRef(null);
 
   // 폼 상태
@@ -30,59 +27,76 @@ export default function PostWrite() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [subcategory, setSubcategory] = useState("");
-  const [thumbFile, setThumbFile] = useState(null);
   const [thumbUrl, setThumbUrl] = useState("");
 
-  // 수정 모드 판단
+  // 에디터 초기값/로딩 제어
+  const [initialContent, setInitialContent] = useState("");
+  const [editorReady, setEditorReady] = useState(false);
+
+  // 썸네일 파일(선택 즉시 업로드)
+  const [thumbFile, setThumbFile] = useState(null);
+
+  // 수정 모드 판정
   const editId = useEditId();
   const isEdit = useMemo(() => !!editId, [editId]);
 
-  // (선택) 수정 모드일 때 기존 글 내용 불러오기
-  // ※ 현재 백엔드는 id 단독 조회 엔드포인트가 없고,
-  //   상세 조회가 /api/posts/:category/:subcategory/:postId 형태입니다.
-  //   필요하면 글쓰기 라우트로 올 때 state로 기존 데이터 전달하거나,
-  //   별도 by-id API를 추가해 주세요.
+  // 수정 모드면 기존 글 불러오기
   useEffect(() => {
-    // 예: location.state로 넘어왔다면 값 세팅 (없으면 스킵)
-    // const state = location.state as any;
-    // if (isEdit && state?.post) { ...set states... }
-  }, [isEdit]);
+    let ignore = false;
+    async function load() {
+      if (!isEdit) {
+        setInitialContent("");
+        setEditorReady(true);
+        return;
+      }
+      try {
+        const { data } = await api.get(`/posts/id/${editId}`);
+        if (ignore) return;
+        setTitle(data.title || "");
+        setDescription(data.description || "");
+        setCategory(data.category || "");
+        setSubcategory(data.subcategory || "");
+        setThumbUrl(data.thumbnail || "");
+        setInitialContent(data.content || "");
+        setEditorReady(true);
+      } catch (e) {
+        console.error(e);
+        alert("글 정보를 불러오지 못했습니다.");
+        navigate(-1);
+      }
+    }
+    load();
+    return () => { ignore = true; };
+  }, [isEdit, editId, navigate]);
 
-  // 파일 업로드 (썸네일/본문 공용)
+  // 공용 업로드 함수 (썸네일/본문 이미지 모두 사용)
   const uploadFile = async (file) => {
     const fd = new FormData();
     fd.append("file", file);
-    // Authorization 헤더는 utils/api 인터셉터에서 자동 첨부됩니다.
-    const { data } = await api.post("/uploads", fd /* , {
-      headers: { "Content-Type": "multipart/form-data" }, // 지정 안 해도 axios가 boundary 포함 설정
-    } */);
-    // 서버 응답: { url: "https://.../uploads/YYYY/MM/xxxxx.ext" }
+    const { data } = await api.post("/uploads", fd);
     return data.url;
   };
 
-  // 썸네일 업로드
-  const handleThumbChoose = (e) => {
+  // 썸네일 선택 시 자동 업로드 (본문에는 삽입하지 않음)
+  const onThumbChange = async (e) => {
     const f = e.target.files?.[0];
     setThumbFile(f || null);
-  };
-
-  const handleThumbUpload = async () => {
+    if (!f) return;
     try {
-      if (!thumbFile) return alert("썸네일 파일을 선택하세요.");
-      const url = await uploadFile(thumbFile);
-      setThumbUrl(url);
-    } catch (e) {
-      console.error(e);
+      const url = await uploadFile(f);
+      setThumbUrl(url); // 미리보기/저장용으로만 사용 (본문엔 삽입 X)
+    } catch (err) {
+      console.error(err);
       alert("썸네일 업로드 실패");
     }
   };
 
-  // 에디터 이미지 업로드 훅
+  // 에디터 이미지 업로드 훅 (본문 삽입 전용)
   const editorHooks = {
     addImageBlobHook: async (blob, callback) => {
       try {
         const url = await uploadFile(blob);
-        callback(url, "image"); // 에디터에 삽입
+        callback(url, "image"); // 본문에만 삽입
       } catch (e) {
         console.error(e);
         alert("이미지 업로드 실패");
@@ -101,10 +115,10 @@ export default function PostWrite() {
     const payload = {
       title: title.trim(),
       description: description.trim(),
-      content: html,
+      content: html,                  // 본문 HTML
       category: (category || "").trim(),
       subcategory: (subcategory || "").trim(),
-      thumbnail: thumbUrl || "",
+      thumbnail: thumbUrl || "",      // 썸네일은 본문과 독립
     };
 
     try {
@@ -185,16 +199,9 @@ export default function PostWrite() {
         </div>
 
         <div className={styles.thumbBlock}>
-          <label className={styles.label}>썸네일</label>
+          <label className={styles.label}>썸네일 (본문에 삽입되지 않습니다)</label>
           <div className={styles.thumbRow}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleThumbChoose}
-            />
-            <button type="button" onClick={handleThumbUpload}>
-              업로드
-            </button>
+            <input type="file" accept="image/*" onChange={onThumbChange} />
           </div>
           {thumbUrl && (
             <img
@@ -207,15 +214,20 @@ export default function PostWrite() {
       </div>
 
       <div className={styles.editorWrap}>
-        <Editor
-          ref={editorRef}
-          initialValue=""
-          previewStyle="vertical"
-          height="600px"
-          initialEditType="wysiwyg"
-          useCommandShortcut={true}
-          hooks={editorHooks}
-        />
+        {/* 데이터 로드 전에는 에디터를 렌더하지 않아 깜빡임/깨짐 방지 */}
+        {editorReady ? (
+          <Editor
+            ref={editorRef}
+            initialValue={initialContent}
+            previewStyle="vertical"
+            height="600px"
+            initialEditType="wysiwyg"
+            useCommandShortcut={true}
+            hooks={editorHooks}
+          />
+        ) : (
+          <div className={styles.loading}>로딩 중...</div>
+        )}
       </div>
     </div>
   );
