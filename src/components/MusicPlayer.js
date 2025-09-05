@@ -10,57 +10,57 @@ const playlist = [
   {
     title: '동물의 숲 bgm 2',
     file: '/audio/2am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 3',
     file: '/audio/3am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 4',
     file: '/audio/4am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 5',
     file: '/audio/5am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 6',
     file: '/audio/6am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 7',
     file: '/audio/7am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 8',
     file: '/audio/8am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 9',
     file: '/audio/9am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 10',
     file: '/audio/10am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 11',
     file: '/audio/11am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
   {
     title: '동물의 숲 bgm 12',
     file: '/audio/12am.mp3',
-    cover: '/images/모동숲.png',
+    cover: '/images/모동숲.jpg',
   },
 ];
 
