@@ -7,7 +7,6 @@ import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
 import { useAuth } from "../AuthContext";
 
-// postId 추출 유틸
 function useEditId() {
   const params = useParams();
   const location = useLocation();
@@ -16,6 +15,46 @@ function useEditId() {
   const m = location.pathname.match(/postId=(\d+)/i);
   const byPathEq = m ? m[1] : null;
   return params.postId || byQuery || byPathEq || null;
+}
+
+// ▼ 추가: 브라우저에서 이미지 리사이즈/압축
+async function compressImage(file, {
+  maxWidth = 1600,
+  maxHeight = 1600,
+  quality = 0.85,
+  outputType = "image/webp", // webp가 작게 나옴. 호환이 문제면 "image/jpeg"
+} = {}) {
+  // 이미지 파일이 아니면 그대로 반환
+  if (!file.type.startsWith("image/")) return file;
+
+  // 2MB 미만은 그냥 올리고 싶다면 아래 조건 해제/조절
+  // if (file.size < 2 * 1024 * 1024) return file;
+
+  const img = await new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+    image.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+    image.src = url;
+  });
+
+  let { width, height } = img;
+  const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * ratio);
+  canvas.height = Math.round(height * ratio);
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const blob = await new Promise((resolve) =>
+    canvas.toBlob((b) => resolve(b), outputType, quality)
+  );
+
+  if (!blob) return file; // 폴백: 압축 실패 시 원본 전송
+  const ext = outputType.includes("webp") ? "webp" : (outputType.includes("jpeg") ? "jpg" : "png");
+  const newName = (file.name.replace(/\.[^.]+$/, "") || "image") + "." + ext;
+  return new File([blob], newName, { type: outputType, lastModified: Date.now() });
 }
 
 export default function PostWrite() {
@@ -34,7 +73,7 @@ export default function PostWrite() {
   const editId = useEditId();
   const isEdit = useMemo(() => !!editId, [editId]);
 
-  // 수정 모드: 기존 데이터 로딩
+  // 수정 모드: 기존 글 로딩
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -62,48 +101,45 @@ export default function PostWrite() {
     return () => { ignore = true; };
   }, [isEdit, editId, navigate]);
 
-  // 공용 업로드 함수 (FormData, 재시도/에러 메시지 강화)
-  const uploadFile = async (file) => {
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const { data } = await api.post("/uploads", fd, {
-        // 명시해도 OK, 생략해도 axios가 자동 설정
-        headers: { /* 'Content-Type': 'multipart/form-data' */ },
-      });
-      if (!data?.url) throw new Error("서버가 URL을 반환하지 않았습니다.");
-      return data.url;
-    } catch (err) {
-      const msg = err?.response?.data?.message || err.message || "업로드 실패";
-      // 인증 만료 등도 친절히 표시
-      if (err?.response?.status === 401 || err?.response?.status === 403) {
-        throw new Error("업로드 권한이 없습니다. 다시 로그인해 주세요.");
-      }
-      throw new Error(msg);
-    }
+  // 공용 업로드 함수: 압축 -> 업로드
+  const uploadImage = async (file) => {
+    // 1) 클라이언트에서 리사이즈/압축
+    const compressed = await compressImage(file, {
+      maxWidth: 1600,
+      maxHeight: 1600,
+      quality: 0.85,
+      outputType: "image/webp",
+    });
+
+    // 2) 서버 전송
+    const fd = new FormData();
+    fd.append("file", compressed);
+    const { data } = await api.post("/uploads", fd /*, { headers: { 'Content-Type': 'multipart/form-data' } }*/);
+    if (!data?.url) throw new Error("서버가 URL을 반환하지 않았습니다.");
+    return data.url;
   };
 
-  // 썸네일: 선택 즉시 업로드 → 본문 삽입하지 않음
+  // 썸네일: 선택 즉시 업로드(본문에 삽입하지 않음)
   const onThumbChange = async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
     try {
-      const url = await uploadFile(f);
+      const url = await uploadImage(f);
       setThumbUrl(url);
-    } catch (e2) {
-      alert(e2.message);
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || err.message || "썸네일 업로드 실패");
     }
   };
 
-  // 에디터 훅: 본문 이미지 업로드 전용 (여러 번 연속 업로드 안정화)
+  // 에디터 이미지 훅: 본문 삽입 전용(여러 번 연속 업로드 안정화)
   const editorHooks = {
     addImageBlobHook: async (blob, callback) => {
       try {
-        // 같은 파일명을 반복 업로드해도 문제 없도록 파일명 임의 부여는 서버에서 처리됨
-        const url = await uploadFile(blob);
+        const url = await uploadImage(blob);
         callback(url, "image");
       } catch (e) {
-        alert(e.message || "이미지 업로드 실패");
+        alert(e?.response?.data?.message || e.message || "이미지 업로드 실패");
       }
     },
   };
