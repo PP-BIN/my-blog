@@ -1,258 +1,117 @@
-.container { 
-  margin: 0 auto;
-  background: #fff;
+/* 컨테이너 */
+.container {
+  background: #ffffff;
+  border-radius: 16px;
   padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+/* 헤더 */
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .title {
-  font-size: 1.6rem;
-  font-weight: bold;
-  margin-bottom: 20px;
-  color: #333;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
-.form {
+/* 헤더 우측 버튼 묶음 */
+.actions {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.editor {
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 10px;
-  min-height: 300px;
-}
-
-.selects {
-  display: flex;
-  gap: 10px;
-}
-
-.selects select {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 0.95rem;
-}
-
-.input {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-.Btns {
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-}
-
-.submitBtn {
-  width: 100px;
-  margin-right: auto;
-  background: #a8d8ff; /* 파스텔 블루 */
-  color: #003d66;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background 0.3s ease;
-}
-
-.submitBtn:hover {
-  background: #91ccff; /* hover 시 살짝 진하게 */
-}
-
-.cencelBtn {
-  width: 100px;
-  margin-left: auto;
-  background: #ffb3c6; /* 파스텔 핑크 */
-  color: #660022;
-  padding: 12px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background 0.3s ease;
-}
-
-.cencelBtn:hover {
-  background: #ff99b3;
-}
-
-/* ✅ 썸네일 업로드 */
-.thumbnailUpload {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
-.thumbnailLabel {
-  font-size: 1rem;
-  font-weight: bold;
-  color: #333;
+.backBtn,
+.saveBtn {
+  appearance: none;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.thumbnailInputWrapper {
+.saveBtn {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  color: #fff;
+}
+
+.backBtn:hover { background: #f3f4f6; }
+.saveBtn:hover { background: #0284c7; border-color: #0284c7; }
+
+/* 폼 레이아웃 */
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.input {
+  height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  outline: none;
+}
+
+.input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+}
+
+/* 2열 행 */
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* 썸네일 */
+.thumbBlock {
+  margin-top: 4px;
+}
+
+.thumbRow {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.thumbnailButton {
-  display: inline-block;
-  padding: 8px 14px;
-  background: #a8d8ff; /* 파스텔 블루 */
-  color: #003d66;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: bold;
-  transition: background 0.3s ease;
-}
-
-.thumbnailButton:hover {
-  background: #91ccff;
-}
-
-/* 실제 input은 숨기기 */
-.thumbnailInput {
-  display: none;
-}
-
-/* ✅ 썸네일 미리보기 */
-.thumbnailPreviewWrapper {
-  position: relative;
-  margin-top: 8px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  overflow: hidden;
-  max-width: 220px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .thumbnailPreview {
-  display: block;
-  width: 100%;
+  margin-top: 10px;
+  max-width: 100%;
   height: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
 }
 
-/* ✅ 삭제 버튼 */
-.thumbnailDeleteBtn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(0, 0, 0, 0.6);
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-size: 16px;
-  line-height: 22px;
-  cursor: pointer;
-  transition: background 0.3s ease;
+/* 에디터 래퍼 */
+.editorWrap {
+  margin-top: 18px;
 }
 
-.thumbnailDeleteBtn:hover {
-  background: rgba(0, 0, 0, 0.8);
-}
-
-/* ========== 카테고리/서브카테고리 관리 UI ========== */
-.categoryManage {
-  margin-top: 6px;
-  padding: 12px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  background: #fafbff;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* 보조 버튼 */
-.secondaryBtn {
-  padding: 10px 14px;
-  background: #f2f7ff; /* 연한 파스텔 블루-그레이 */
-  color: #333;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: bold;
-  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
-}
-.secondaryBtn:hover {
-  background: #ddeaff;
-  border-color: #91ccff;
-  color: #003d66;
-}
-
-/* 위험 버튼 */
-.dangerBtn {
-  padding: 10px 14px;
-  background: #ffb3c6; /* 파스텔 핑크 */
-  color: #660022;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: bold;
-  transition: background 0.25s ease, transform 0.05s ease;
-}
-.dangerBtn:hover {
-  background: #ff99b3;
-}
-.dangerBtn:active {
-  transform: translateY(1px);
-}
-
-/* 안내 문구 */
-.help {
-  margin-top: 6px;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-/* 포커스 접근성 향상 */
-.selects select:focus,
-.input:focus,
-.thumbnailButton:focus,
-.secondaryBtn:focus,
-.dangerBtn:focus,
-.submitBtn:focus,
-.cencelBtn:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(168, 216, 255, 0.45);
-  border-color: #91ccff;
-}
-
-/* 버튼 상태 */
-.submitBtn:disabled,
-.cencelBtn:disabled,
-.secondaryBtn:disabled,
-.dangerBtn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* 반응형 */
-@media (max-width: 560px) {
-  .selects {
-    flex-direction: column;
-  }
-  .Btns {
-    gap: 10px;
-  }
+.loading {
+  padding: 32px 0;
+  text-align: center;
+  color: #64748b;
+  font-weight: 500;
 }
