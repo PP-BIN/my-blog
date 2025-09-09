@@ -13,25 +13,34 @@ export default function PostList() {
   const urlCat = decodeURIComponent(category || "");
   const urlSub = decodeURIComponent(subcategory || "");
 
-  const [posts, setPosts] = useState([]);
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("latest");
+  // 목록/상태
+  const [posts, setPosts] = useState([]);      // 서버가 주는 현재 페이지 아이템
+  const [total, setTotal] = useState(0);       // 서버 총 개수
   const [loading, setLoading] = useState(true);
 
-  // ✅ 페이지네이션 상태
+  // 필터 UI
+  const [search, setSearch] = useState(searchParams.get("q") || "");
+  const [sort, setSort] = useState(searchParams.get("sort") === "oldest" ? "oldest" : "latest");
+
+  // 페이지네이션
   const PER_PAGE = 9;
   const initialPage = Number(searchParams.get("page") || 1);
   const [page, setPage] = useState(Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1);
 
-  // URL → page 동기화 (주소 직접 변경/뒤로가기 대응)
+  // URL → 내부 상태(뒤로가기/주소창 변경 대응)
   useEffect(() => {
     const sp = Number(searchParams.get("page") || 1);
     if (Number.isFinite(sp) && sp !== page) {
       setPage(sp > 0 ? sp : 1);
     }
+    const q = searchParams.get("q") || "";
+    if (q !== search) setSearch(q);
+    const srt = searchParams.get("sort") === "oldest" ? "oldest" : "latest";
+    if (srt !== sort) setSort(srt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // 카테고리/서브카테고리 정규화(서버와 표현이 달라도 매칭되게)
   const resolveCanonicalNames = useCallback(async () => {
     try {
       const res = await api.get("/categories");
@@ -61,82 +70,66 @@ export default function PostList() {
     }
   }, [urlCat, urlSub]);
 
+  // 서버에서 페이지 단위로 가져오기
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
       const { canonicalCategory, canonicalSubcategory } = await resolveCanonicalNames();
 
-      // 1) 유연 매칭 API 우선
-      try {
-        const byCat = await api.get(
-          `/posts/by-category/${encodeURIComponent(category)}/${encodeURIComponent(subcategory)}`
-        );
-        setPosts(byCat.data || []);
-      } catch (e1) {
-        // 2) 폴백: 기존 쿼리
-        const legacy = await api.get(`/posts`, {
-          params: {
-            category: canonicalCategory,
-            subcategory: canonicalSubcategory,
-          },
-        });
-        setPosts(legacy.data || []);
-      }
+      // ✅ 단일 엔드포인트(`/api/posts`)로 페이지네이션/정렬/검색 처리
+      const res = await api.get("/posts", {
+        params: {
+          category: canonicalCategory,
+          subcategory: canonicalSubcategory,
+          page,
+          per_page: PER_PAGE,
+          search: search || undefined,
+          sort: sort === "latest" ? "desc_created" : "asc_created",
+        },
+      });
+
+      setPosts(res.data?.items || []);
+      setTotal(res.data?.total || 0);
     } catch (e) {
       console.error("목록 불러오기 실패:", e);
       setPosts([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
-  }, [resolveCanonicalNames, category, subcategory]);
+  }, [resolveCanonicalNames, page, search, sort]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // 필터 & 정렬
-  const filteredPosts = useMemo(() => {
-    return posts
-      .filter((post) => (post.title || "").toLowerCase().includes(search.toLowerCase()))
-      .sort((a, b) => {
-        if (sort === "latest") return new Date(b.created_at) - new Date(a.created_at);
-        if (sort === "oldest") return new Date(a.created_at) - new Date(b.created_at);
-        return 0;
-      });
-  }, [posts, search, sort]);
+  // 총 페이지
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PER_PAGE)), [total]);
 
-  // ✅ 페이지네이션 계산
-  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / PER_PAGE));
-  // page가 범위 밖이면 보정
-  useEffect(() => {
-    if (page > totalPages) {
-      goPage(totalPages);
-    } else if (page < 1) {
-      goPage(1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalPages]);
+  // URL 동기화 유틸
+  const syncSearchParams = (nextPage, nextSearch = search, nextSort = sort) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (!nextPage || nextPage === 1) newParams.delete("page");
+    else newParams.set("page", String(nextPage));
+    if (nextSearch) newParams.set("q", nextSearch);
+    else newParams.delete("q");
+    if (nextSort === "oldest") newParams.set("sort", "oldest");
+    else newParams.delete("sort");
+    setSearchParams(newParams);
+  };
 
-  const currentPagePosts = useMemo(() => {
-    const start = (page - 1) * PER_PAGE;
-    return filteredPosts.slice(start, start + PER_PAGE);
-  }, [filteredPosts, page]);
-
-  // ✅ 페이지 변경 함수들 (URL ?page= 동기화)
+  // 페이지 이동
   const goPage = (p) => {
     const next = Math.min(Math.max(1, p), totalPages);
     setPage(next);
-    const newParams = new URLSearchParams(searchParams);
-    if (next === 1) newParams.delete("page");
-    else newParams.set("page", String(next));
-    setSearchParams(newParams);
+    syncSearchParams(next);
   };
   const goFirst = () => goPage(1);
   const goPrev = () => goPage(page - 1);
   const goNext = () => goPage(page + 1);
   const goLast = () => goPage(totalPages);
 
-  // ✅ 숫자 버튼(10개 단위 윈도우)
+  // 숫자 버튼(10개 윈도우)
   const windowStart = Math.floor((page - 1) / 10) * 10 + 1;
   const windowEnd = Math.min(windowStart + 9, totalPages);
   const pageNumbers = [];
@@ -156,18 +149,30 @@ export default function PostList() {
           placeholder="검색어 입력..."
           value={search}
           onChange={(e) => {
-            setSearch(e.target.value);
-            // 검색어가 바뀌면 1페이지로
-            if (page !== 1) goPage(1);
+            const v = e.target.value;
+            setSearch(v);
+            // 검색 변경 → 1페이지로
+            if (page !== 1) {
+              setPage(1);
+              syncSearchParams(1, v, sort);
+            } else {
+              syncSearchParams(1, v, sort);
+            }
           }}
           className={styles.searchInput}
         />
         <select
           value={sort}
           onChange={(e) => {
-            setSort(e.target.value);
-            // 정렬이 바뀌면 1페이지로
-            if (page !== 1) goPage(1);
+            const v = e.target.value;
+            setSort(v);
+            // 정렬 변경 → 1페이지로
+            if (page !== 1) {
+              setPage(1);
+              syncSearchParams(1, search, v);
+            } else {
+              syncSearchParams(1, search, v);
+            }
           }}
           className={styles.sortSelect}
         >
@@ -181,8 +186,8 @@ export default function PostList() {
       ) : (
         <>
           <div className={styles.postGrid}>
-            {currentPagePosts.length > 0 ? (
-              currentPagePosts.map((post) => (
+            {posts.length > 0 ? (
+              posts.map((post) => (
                 <Link
                   to={`/${encodeURIComponent(category)}/${encodeURIComponent(subcategory)}/${post.id}`}
                   key={post.id}
@@ -204,13 +209,14 @@ export default function PostList() {
             )}
           </div>
 
-          {/* ✅ 페이지네이션 바 */}
+          {/* 페이지네이션 */}
           {totalPages > 1 && (
             <nav className={styles.pagination} aria-label="페이지네이션">
               <button
                 className={`${styles.pageBtn} ${page === 1 ? styles.disabled : ""}`}
                 onClick={goFirst}
                 disabled={page === 1}
+                aria-label="처음 페이지"
               >
                 &laquo;
               </button>
@@ -218,11 +224,12 @@ export default function PostList() {
                 className={`${styles.pageBtn} ${page === 1 ? styles.disabled : ""}`}
                 onClick={goPrev}
                 disabled={page === 1}
+                aria-label="이전 페이지"
               >
                 &lsaquo;
               </button>
 
-              {/* 필요 시 앞쪽 생략표시 */}
+              {/* 앞쪽 생략 */}
               {windowStart > 1 && (
                 <>
                   <button className={styles.pageBtn} onClick={() => goPage(1)}>1</button>
@@ -240,7 +247,7 @@ export default function PostList() {
                 </button>
               ))}
 
-              {/* 필요 시 뒤쪽 생략표시 */}
+              {/* 뒤쪽 생략 */}
               {windowEnd < totalPages && (
                 <>
                   {windowEnd < totalPages - 1 && <span className={styles.ellipsis}>…</span>}
@@ -254,6 +261,7 @@ export default function PostList() {
                 className={`${styles.pageBtn} ${page === totalPages ? styles.disabled : ""}`}
                 onClick={goNext}
                 disabled={page === totalPages}
+                aria-label="다음 페이지"
               >
                 &rsaquo;
               </button>
@@ -261,6 +269,7 @@ export default function PostList() {
                 className={`${styles.pageBtn} ${page === totalPages ? styles.disabled : ""}`}
                 onClick={goLast}
                 disabled={page === totalPages}
+                aria-label="마지막 페이지"
               >
                 &raquo;
               </button>
