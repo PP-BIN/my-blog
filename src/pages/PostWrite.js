@@ -1,272 +1,453 @@
-// 파일: src/pages/PostWrite.js
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import api from "../utils/api";
+import React, { useEffect, useState, useRef } from "react";
 import { Editor } from "@toast-ui/react-editor";
 import "@toast-ui/editor/dist/toastui-editor.css";
 import styles from "../css/PostWrite.module.css";
-import { useAuth } from "../AuthContext";
-
-function useEditId() {
-  const params = useParams();
-  const location = useLocation();
-  const q = new URLSearchParams(location.search);
-  const byQuery = q.get("postId");
-  const m = location.pathname.match(/postId=(\d+)/i);
-  const byPathEq = m ? m[1] : null;
-  return params.postId || byQuery || byPathEq || null;
-}
-
-// ▼ 추가: 브라우저에서 이미지 리사이즈/압축
-async function compressImage(file, {
-  maxWidth = 1600,
-  maxHeight = 1600,
-  quality = 0.85,
-  outputType = "image/webp", // webp가 작게 나옴. 호환이 문제면 "image/jpeg"
-} = {}) {
-  // 이미지 파일이 아니면 그대로 반환
-  if (!file.type.startsWith("image/")) return file;
-
-  // 2MB 미만은 그냥 올리고 싶다면 아래 조건 해제/조절
-  // if (file.size < 2 * 1024 * 1024) return file;
-
-  const img = await new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
-    image.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
-    image.src = url;
-  });
-
-  let { width, height } = img;
-  const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(width * ratio);
-  canvas.height = Math.round(height * ratio);
-
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-  const blob = await new Promise((resolve) =>
-    canvas.toBlob((b) => resolve(b), outputType, quality)
-  );
-
-  if (!blob) return file; // 폴백: 압축 실패 시 원본 전송
-  const ext = outputType.includes("webp") ? "webp" : (outputType.includes("jpeg") ? "jpg" : "png");
-  const newName = (file.name.replace(/\.[^.]+$/, "") || "image") + "." + ext;
-  return new File([blob], newName, { type: outputType, lastModified: Date.now() });
-}
+import api from "../utils/api"; // ★ axios 대신 공용 인스턴스 사용
+import { useNavigate, useParams } from "react-router-dom";
+import logger from "../utils/logger";
 
 export default function PostWrite() {
+  const { postId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const editorRef = useRef(null);
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
-  const [subcategory, setSubcategory] = useState("");
-  const [thumbUrl, setThumbUrl] = useState("");
-  const [initialContent, setInitialContent] = useState("");
-  const [editorReady, setEditorReady] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    category: "",
+    subcategory: "",
+    thumbnail: "",
+  });
+  const [preview, setPreview] = useState("");
+  const editorRef = useRef();
 
-  const editId = useEditId();
-  const isEdit = useMemo(() => !!editId, [editId]);
+  // 입력: 새 카테고리/서브카테고리
+  const [newCategory, setNewCategory] = useState("");
+  const [newSubcategory, setNewSubcategory] = useState("");
 
-  // 수정 모드: 기존 글 로딩
+  // 객체 URL 정리
   useEffect(() => {
-    let ignore = false;
-    (async () => {
-      if (!isEdit) {
-        setInitialContent("");
-        setEditorReady(true);
-        return;
+    return () => {
+      if (preview && preview.startsWith("blob:")) {
+        URL.revokeObjectURL(preview);
       }
-      try {
-        const { data } = await api.get(`/posts/id/${editId}`);
-        if (ignore) return;
-        setTitle(data.title || "");
-        setDescription(data.description || "");
-        setCategory(data.category || "");
-        setSubcategory(data.subcategory || "");
-        setThumbUrl(data.thumbnail || "");
-        setInitialContent(data.content || "");
-        setEditorReady(true);
-      } catch (e) {
-        console.error(e);
-        alert("글 정보를 불러오지 못했습니다.");
-        navigate(-1);
-      }
-    })();
-    return () => { ignore = true; };
-  }, [isEdit, editId, navigate]);
+    };
+  }, [preview]);
 
-  // 공용 업로드 함수: 압축 -> 업로드
-  const uploadImage = async (file) => {
-    // 1) 클라이언트에서 리사이즈/압축
-    const compressed = await compressImage(file, {
-      maxWidth: 1600,
-      maxHeight: 1600,
-      quality: 0.85,
-      outputType: "image/webp",
-    });
-
-    // 2) 서버 전송
-    const fd = new FormData();
-    fd.append("file", compressed);
-    const { data } = await api.post("/uploads", fd /*, { headers: { 'Content-Type': 'multipart/form-data' } }*/);
-    if (!data?.url) throw new Error("서버가 URL을 반환하지 않았습니다.");
-    return data.url;
-  };
-
-  // 썸네일: 선택 즉시 업로드(본문에 삽입하지 않음)
-  const onThumbChange = async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  // 카테고리 불러오기
+  const fetchCategories = async () => {
     try {
-      const url = await uploadImage(f);
-      setThumbUrl(url);
-    } catch (err) {
-      console.error(err);
-      alert(err?.response?.data?.message || err.message || "썸네일 업로드 실패");
+      const res = await api.get("/categories"); // ★ /api 붙이지 않음(이미 baseURL:/api)
+      logger.debug("✅ API 카테고리:", res.data);
+      setCategories(res.data);
+
+      // 선택값 초기화/동기화
+      if (!form.category) {
+        if (res.data.length > 0) {
+          const first = res.data[0];
+          setForm((p) => ({
+            ...p,
+            category: first.category,
+            subcategory: first.subcategories?.[0] || "",
+          }));
+          setSubcategories(first.subcategories || []);
+        } else {
+          setSubcategories([]);
+          setForm((p) => ({ ...p, category: "", subcategory: "" }));
+        }
+      } else {
+        const selected = res.data.find((c) => c.category === form.category);
+        setSubcategories(selected?.subcategories || []);
+        if (
+          selected &&
+          selected.subcategories.length > 0 &&
+          !selected.subcategories.includes(form.subcategory)
+        ) {
+          setForm((p) => ({ ...p, subcategory: selected.subcategories[0] }));
+        }
+      }
+    } catch (e) {
+      console.error("❌ 카테고리 불러오기 실패", e);
     }
   };
 
-  // 에디터 이미지 훅: 본문 삽입 전용(여러 번 연속 업로드 안정화)
-  const editorHooks = {
-    addImageBlobHook: async (blob, callback) => {
-      try {
-        const url = await uploadImage(blob);
-        callback(url, "image");
-      } catch (e) {
-        alert(e?.response?.data?.message || e.message || "이미지 업로드 실패");
-      }
-    },
+  useEffect(() => {
+    fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 카테고리 변경
+  const handleCategoryChange = (e) => {
+    const selectedCategory = e.target.value;
+    const selectedCat = categories.find((c) => c.category === selectedCategory);
+
+    setForm((prev) => ({
+      ...prev,
+      category: selectedCategory,
+      subcategory: selectedCat?.subcategories?.[0] || "",
+    }));
+    setSubcategories(selectedCat?.subcategories || []);
   };
 
-  const handleSubmit = async () => {
-    const editor = editorRef.current?.getInstance();
-    const html = editor ? editor.getHTML() : "";
+  // 썸네일 업로드 (본문에는 삽입하지 않음)
+  const handleThumbnailChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (!title.trim()) return alert("제목을 입력하세요.");
-    if (!html.trim()) return alert("내용을 입력하세요.");
+    if (preview && preview.startsWith("blob:")) {
+      URL.revokeObjectURL(preview);
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setPreview(previewUrl);
 
-    const payload = {
-      title: title.trim(),
-      description: description.trim(),
-      content: html,
-      category: (category || "").trim(),
-      subcategory: (subcategory || "").trim(),
-      thumbnail: thumbUrl || "",
-    };
+    const fd = new FormData();
+    fd.append("file", file); // ★ 필드명은 file
 
     try {
-      if (isEdit) {
-        await api.put(`/posts/${editId}`, payload);
-        alert("게시글이 수정되었습니다.");
+      // ★ 업로드 엔드포인트: /api/uploads
+      const res = await api.post("/uploads", fd /*, {
+        headers: { "Content-Type": "multipart/form-data" }, // 생략 OK
+      }*/);
+      setForm((prev) => ({ ...prev, thumbnail: res.data.url }));
+    } catch (err) {
+      console.error("❌ 썸네일 업로드 실패", err);
+      alert(err.response?.data?.message || "썸네일 업로드 실패");
+    }
+  };
+
+  // 글 저장
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const contentHtml = editorRef.current.getInstance().getHTML();
+
+    try {
+      if (postId) {
+        await api.put(`/posts/${postId}`, { ...form, content: contentHtml });
+        alert("게시글이 수정되었습니다!");
       } else {
-        await api.post("/posts", payload);
-        alert("게시글 작성 완료");
+        await api.post("/posts", { ...form, content: contentHtml });
+        alert("게시글이 작성되었습니다!");
       }
-      navigate(-1);
-    } catch (e) {
-      console.error(e);
-      alert(e.response?.data?.message || "저장에 실패했습니다.");
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.error(err.response?.data || err.message);
+      alert(err.response?.data?.message || "저장 실패");
+    }
+  };
+
+  // 수정 모드: 단일 조회
+  useEffect(() => {
+    if (!postId) return;
+    api
+      .get(`/posts/id/${postId}`) // ★ PHP 단일 조회 엔드포인트
+      .then((res) => {
+        const d = res.data;
+        setForm({
+          title: d.title,
+          description: d.description || "",
+          category: d.category,
+          subcategory: d.subcategory,
+          thumbnail: d.thumbnail,
+        });
+        setPreview(d.thumbnail);
+
+        if (!categories.length) return;
+        const cat = categories.find((c) => c.category === d.category);
+        setSubcategories(cat ? cat.subcategories : []);
+
+        if (editorRef.current) {
+          editorRef.current.getInstance().setHTML(d.content || "");
+        }
+      })
+      .catch((err) => console.error(err));
+  }, [postId, categories]);
+
+  // ========== 카테고리/서브카테고리 관리 ==========
+
+  // 카테고리 추가만
+  const handleAddCategoryOnly = async (name) => {
+    try {
+      await api.post("/categories", { name });
+      await fetchCategories();
+      setForm((p) => ({ ...p, category: name, subcategory: "" }));
+      setSubcategories([]);
+    } catch (err) {
+      if (err.response?.status === 409) {
+        alert("이미 존재하는 카테고리입니다.");
+      } else {
+        console.error(err);
+        alert("카테고리 추가 실패");
+      }
+    }
+  };
+
+  // 서브카테고리 추가(카테고리 없으면 만들고)
+  const handleAddSubcategorySmart = async (categoryName, subName) => {
+    try {
+      await api.post(
+        `/categories/${encodeURIComponent(categoryName)}/subcategories`,
+        { name: subName }
+      );
+      const updated = await api.get("/categories");
+      setCategories(updated.data);
+
+      const current = updated.data.find((c) => c.category === categoryName);
+      setSubcategories(current?.subcategories || []);
+      setForm((p) => ({ ...p, category: categoryName, subcategory: subName }));
+    } catch (err) {
+      if (err.response?.status === 409) {
+        alert("이미 존재하는 서브카테고리입니다.");
+      } else {
+        console.error(err);
+        alert("서브카테고리 추가 실패");
+      }
+    }
+  };
+
+  const handleAddCategory = async () => {
+    const name = newCategory.trim();
+    if (!name) return alert("카테고리명을 입력하세요.");
+    await handleAddCategoryOnly(name);
+    setNewCategory("");
+  };
+
+  const handleAddSubcategory = async () => {
+    const catFromInput = newCategory.trim();
+    const subFromInput = newSubcategory.trim();
+
+    if (catFromInput && subFromInput) {
+      await handleAddSubcategorySmart(catFromInput, subFromInput);
+      setNewCategory("");
+      setNewSubcategory("");
+      return;
+    }
+
+    if (!subFromInput) return alert("서브카테고리명을 입력하세요.");
+
+    const baseCategory = form.category?.trim();
+    if (!baseCategory) {
+      return alert("상위 카테고리를 선택하거나 새 카테고리를 입력하세요.");
+    }
+
+    await handleAddSubcategorySmart(baseCategory, subFromInput);
+    setNewSubcategory("");
+  };
+
+  const handleRemoveCategory = async () => {
+    if (!form.category) return alert("삭제할 카테고리를 선택하세요.");
+    if (!window.confirm(`'${form.category}' 카테고리를 삭제할까요? (하위도 함께 삭제)`)) return;
+
+    try {
+      await api.delete(`/categories/${encodeURIComponent(form.category)}`);
+      await fetchCategories();
+
+      const res = await api.get("/categories");
+      const list = res.data;
+      setCategories(list);
+      if (list.length) {
+        setForm((p) => ({
+          ...p,
+          category: list[0].category,
+          subcategory: list[0].subcategories?.[0] || "",
+        }));
+        setSubcategories(list[0].subcategories || []);
+      } else {
+        setForm((p) => ({ ...p, category: "", subcategory: "" }));
+        setSubcategories([]);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("카테고리 삭제 실패 (참조 데이터가 있거나 서버 오류일 수 있어요)");
+    }
+  };
+
+  const handleRemoveSubcategory = async () => {
+    if (!form.category || !form.subcategory)
+      return alert("삭제할 서브카테고리를 선택하세요.");
+    if (!window.confirm(`'${form.category} > ${form.subcategory}' 를 삭제할까요?`)) return;
+
+    try {
+      await api.delete(
+        `/categories/${encodeURIComponent(form.category)}/subcategories/${encodeURIComponent(form.subcategory)}`
+      );
+
+      const updated = categories.map((c) =>
+        c.category === form.category
+          ? {
+              ...c,
+              subcategories: (c.subcategories || []).filter(
+                (s) => s !== form.subcategory
+              ),
+            }
+          : c
+      );
+      setCategories(updated);
+
+      const newSubs = (subcategories || []).filter(
+        (s) => s !== form.subcategory
+      );
+      setSubcategories(newSubs);
+      setForm((p) => ({ ...p, subcategory: newSubs[0] || "" }));
+    } catch (err) {
+      console.error(err);
+      alert("서브카테고리 삭제 실패");
     }
   };
 
   return (
     <div className={styles.container}>
-      <div className={styles.headerRow}>
-        <h1 className={styles.title}>{isEdit ? "글 수정" : "글 작성"}</h1>
-        <div className={styles.actions}>
-          <button className={styles.backBtn} onClick={() => navigate(-1)}>
-            ← 돌아가기
-          </button>
-          <button className={styles.saveBtn} onClick={handleSubmit}>
-            {isEdit ? "수정 저장" : "작성 완료"}
-          </button>
-        </div>
-      </div>
+      <h2 className={styles.title}>
+        {postId ? "✏️ 글 수정" : "✏️ 새 글 작성"}
+      </h2>
 
-      <div className={styles.formGrid}>
-        <label className={styles.label}>
-          제목
-          <input
-            className={styles.input}
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="제목을 입력하세요"
-            required
-          />
-        </label>
+      <form onSubmit={handleSubmit} className={styles.form}>
+        {/* 제목 */}
+        <input
+          type="text"
+          placeholder="제목을 입력하세요"
+          value={form.title}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+          className={styles.input}
+          required
+        />
 
-        <label className={styles.label}>
-          설명(요약)
-          <input
-            className={styles.input}
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="목록 카드에 보일 간단한 설명"
-          />
-        </label>
+        {/* 설명 */}
+        <input
+          type="text"
+          placeholder="간단한 설명을 입력하세요"
+          value={form.description}
+          onChange={(e) => setForm({ ...form, description: e.target.value })}
+          className={styles.input}
+        />
 
-        <div className={styles.row2}>
-          <label className={styles.label}>
-            카테고리
+        {/* 썸네일 업로드 (본문에 삽입되지 않음) */}
+        <div className={styles.thumbnailUpload}>
+          <label className={styles.thumbnailLabel}>썸네일 업로드</label>
+
+          <div className={styles.thumbnailInputWrapper}>
+            <label htmlFor="thumbnailUpload" className={styles.thumbnailButton}>
+              썸네일 선택하기
+            </label>
             <input
-              className={styles.input}
-              type="text"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              placeholder="예) Study"
+              id="thumbnailUpload"
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
+              className={styles.thumbnailInput}
             />
-          </label>
-
-          <label className={styles.label}>
-            서브카테고리
-            <input
-              className={styles.input}
-              type="text"
-              value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              placeholder="예) react.js"
-            />
-          </label>
-        </div>
-
-        <div className={styles.thumbBlock}>
-          <label className={styles.label}>썸네일 (본문에 삽입되지 않습니다)</label>
-          <div className={styles.thumbRow}>
-            <input type="file" accept="image/*" onChange={onThumbChange} />
           </div>
-          {thumbUrl && (
-            <img
-              src={thumbUrl}
-              alt="thumbnail"
-              className={styles.thumbnailPreview}
-            />
+
+          {preview && (
+            <div className={styles.thumbnailPreviewWrapper}>
+              <img
+                src={preview}
+                alt="썸네일 미리보기"
+                className={styles.thumbnailPreview}
+              />
+              <button
+                type="button"
+                className={styles.thumbnailDeleteBtn}
+                onClick={() => {
+                  setPreview("");
+                  setForm((prev) => ({ ...prev, thumbnail: "" }));
+                }}
+              >
+                ✕
+              </button>
+            </div>
           )}
         </div>
-      </div>
 
-      <div className={styles.editorWrap}>
-        {editorReady ? (
-          <Editor
-            ref={editorRef}
-            initialValue={initialContent}
-            previewStyle="vertical"
-            height="600px"
-            initialEditType="wysiwyg"
-            useCommandShortcut={true}
-            hooks={editorHooks}
-          />
-        ) : (
-          <div className={styles.loading}>로딩 중...</div>
-        )}
-      </div>
+        {/* 카테고리 & 서브카테고리 선택 */}
+        <div className={styles.selects}>
+          <select
+            value={form.category}
+            onChange={handleCategoryChange}
+            className={styles.select}
+          >
+            {categories.map((cat) => (
+              <option key={cat.category} value={cat.category}>
+                {cat.category}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={form.subcategory}
+            onChange={(e) =>
+              setForm({ ...form, subcategory: e.target.value })
+            }
+            className={styles.select}
+          >
+            {(subcategories || []).map((sub) => (
+              <option key={sub} value={sub}>
+                {sub}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* 카테고리/서브카테고리 관리 */}
+        <div className={styles.categoryManage}>
+          <div className={styles.row}>
+            <input
+              type="text"
+              placeholder="새 카테고리명 (선택)"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className={styles.input}
+            />
+            <button type="button" onClick={handleAddCategory} className={styles.secondaryBtn}>
+              카테고리 추가
+            </button>
+            <button type="button" onClick={handleRemoveCategory} className={styles.dangerBtn}>
+              선택 카테고리 삭제
+            </button>
+          </div>
+
+          <div className={styles.row}>
+            <input
+              type="text"
+              placeholder="새 서브카테고리명"
+              value={newSubcategory}
+              onChange={(e) => setNewSubcategory(e.target.value)}
+              className={styles.input}
+            />
+            <button type="button" onClick={handleAddSubcategory} className={styles.secondaryBtn}>
+              서브카테고리 추가
+            </button>
+            <button type="button" onClick={handleRemoveSubcategory} className={styles.dangerBtn}>
+              선택 서브카테고리 삭제
+            </button>
+          </div>
+
+          <p className={styles.help}>
+            💡 팁: “새 카테고리명”과 “새 서브카테고리명”을 <strong>둘 다</strong> 입력하고
+            <strong> [서브카테고리 추가]</strong>를 누르면, 해당 카테고리가 없으면 자동으로 만들고
+            서브카테고리까지 한 번에 추가해요.
+          </p>
+        </div>
+
+        {/* 에디터 */}
+        <Editor
+          ref={editorRef}
+          initialValue=" "
+          previewStyle="vertical"
+          height="400px"
+          initialEditType="wysiwyg"
+          useCommandShortcut={true}
+        />
+
+        <div className={styles.btns}>
+          <button type="submit" className={styles.submitBtn}>
+            작성 완료
+          </button>
+          <button type="button" className={styles.cencelBtn} onClick={() => navigate("/")}>
+            취소
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
